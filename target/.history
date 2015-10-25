@@ -6,3 +6,7 @@ run 100 5 -feature
 run 100 5
 run 10 5
 run 100 5
+run 1000 5
+run 100 5
+run 1000 5
+run 100 5

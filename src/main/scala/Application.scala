@@ -61,8 +61,8 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 							ID_Node_map += (nodeId -> acref)}
 							
 						}	
-			println (nodesList)
-			println(ID_Node_map)			
+			//println (nodesList)
+			//println(ID_Node_map)			
 			println("Nodes created.")
 
 			//concurrent join and stabilize()
@@ -90,11 +90,12 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 				
 				var node: ActorRef= ID_Node_map.apply(sortedKeyArray(i))
 				var pred: ActorRef = ID_Node_map.apply(sortedKeyArray(j))
+				var predId = sortedKeyArray(j)
 				//println("pred : "+ node +"----"+ pred)
-				node ! SetPredecessor(pred)
+				node ! SetPredecessor(pred, predId)
 
 			}
-			println("predecessors set")
+			
 
 			for (i<-0 until numNodes){
 				var nodeId = sortedKeyArray(i)
@@ -129,29 +130,30 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 
 
 
-			println("Chord ring is established.")
+			println("\nChord ring is established.")
+			println("-------------------------------------------------------")
 
 
 			val scanner = new java.util.Scanner(System.in)
 
 
-			print("Enter a key that you want to lookup from 0 to "+ MAX_KEY +":")
+			print("\n\nEnter a key that you want to lookup from 0 to "+ MAX_KEY +": ")
 			val input = scanner.nextLine()
-			println(input.toInt)
+			//println(input.toInt)
 			val r = (scala.util.Random).nextInt(nodesList.length)
 			val futr = nodesList(r) ? Find_Successor(input.toInt)
 			val result = Await.result(futr, timeout.duration).asInstanceOf[(ActorRef, Int)]
-			//val futr1 = result ? GetNodeID
-			//val result1 = Await.result(futr1, timeout.duration).asInstanceOf[Int]
-			println("The node responsible for the given key is: "+ result._1+ "whose nodeId is: "+result._2)
+			
+			println("\n\nThe node responsible for the given key is: "+ result._1+ " whose nodeId is: "+result._2)
 			
 
 
 
 
 			//NodeJoin
+			println("---------------------------------------------------------")
 			val scanner2 = new java.util.Scanner(System.in)
-			print("Enter ip address of the newly joining node: ")
+			print("\n\n\nEnter ip address of the newly joining node: ")
 
 			val input2 = scanner2.nextLine()
 			//println(input2.toInt)
@@ -164,7 +166,7 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
             	Character.forDigit(b & 0x0f, 16))
             val trimmedHash= hash.substring(0,4)
             var newnodeId = Integer.parseInt(trimmedHash, 16)
-            println("new node's id: "+ newnodeId)
+            println("\nNew node's Chord id: "+ newnodeId)
 			val newacref =  context.actorOf(Props(classOf[Node], newnodeId, KEY_LENGTH, MAX_KEY))
 			val z = (scala.util.Random).nextInt(nodesList.length)
 			newacref ! Join(nodesList(z))
