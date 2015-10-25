@@ -1,0 +1,8 @@
+run 100 5
+clear
+clean
+run 100 5
+run 100 5 -feature
+run 100 5
+run 10 5
+run 100 5
