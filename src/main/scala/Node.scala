@@ -42,8 +42,8 @@ case class ConcurrentJoin(randomNode: ActorRef)
 case class Stabilize()
 case class Notify(randomNode: ActorRef)
 case class Fix_Fingers()
-case class Find_Successor(id: Int)
-case class Find_Predecessor(id: Int)
+case class Find_Successor(id: Int, hopcount:Int)
+case class Find_Predecessor(id: Int, hopcount:Int)
 case class Closest_Preceding_Finger(id: Int)
 case class Join(randomNode:ActorRef)
 case class Update_Finger_Table(actorref: ActorRef, s:Int, i:Int)
@@ -87,12 +87,13 @@ class Node(nodeId:Int, KEY_LENGTH:Int, MAX_KEY:Int) extends Actor{
 								//println("for node "+self+ "nodeid" + nodeId+ "--i: "+i+" ---start: "+ fingerTable(i).getStart()+ "--successorId: " + fingerTable(i).successorId+"--successor: "+ fingerTable(i).successor)
 
 		//lookup
-		case Find_Successor(id) => //println("Finding successor for id: "+ id)
-								val (succ, succId) = find_successor(nodeId, id)
-								sender ! (succ,succId)
-		case Find_Predecessor(id) => 
-								val (predecessor,predecessorId) = find_predecessor(nodeId, id)
-								sender ! (predecessor, predecessorId)
+		case Find_Successor(id, hopcount) => //println("Finding successor for id: "+ id)
+								val (succ, succId, hcount) = find_successor(nodeId, id, hopcount)
+								sender ! (succ,succId, hcount)
+		case Find_Predecessor(id, hopcount) => 
+								var hpcount = hopcount + 1
+								val (predecessor,predecessorId, hcount) = find_predecessor(nodeId, id, hpcount)
+								sender ! (predecessor, predecessorId, hcount )
 
 
 		case Closest_Preceding_Finger(id) => println("cpf")
@@ -131,34 +132,34 @@ class Node(nodeId:Int, KEY_LENGTH:Int, MAX_KEY:Int) extends Actor{
 	}
 
 
-		def find_successor(nodeId:Int, id: Int):(ActorRef, Int)={
+		def find_successor(nodeId:Int, id: Int, hopcount:Int):(ActorRef, Int, Int)={
 
-			val (predecessor, predecessorId) = find_predecessor(nodeId ,id)
+			val (predecessor, predecessorId, hcount) = find_predecessor(nodeId ,id, hopcount)
 			
 			var successor = (self, nodeId)
 			if (predecessor !=self){
 				val future4 = predecessor ? GetSuccessor()	
 				
 				val successor = Await.result(future4, timeout.duration).asInstanceOf[(ActorRef, Int)]
-				return (successor._1, successor._2)
+				return (successor._1, successor._2, hcount)
 			}
-			return (successor._1, successor._2)
+			return (successor._1, successor._2, hcount)
 
 		}
-		def find_predecessor(nodeId:Int, id:Int):(ActorRef, Int)={
+		def find_predecessor(nodeId:Int, id:Int, hopcount:Int):(ActorRef, Int, Int)={
 			////println("FP: Node "+self+ "---nodeid: " + nodeId+ "--successorId: "+ fingerTable(0).successorId +"---id: "+id)
 
 			if (inRange_rightIncluded(id, nodeId, fingerTable(0).successorId)){
 				////println("FP: At nodeId: "+nodeId+ " --returning nodeId: "+ nodeId)
-				return (self, nodeId)
+				return (self, nodeId, hopcount)
 			}
 			else{
 				var cpfSuccessor= closest_preceding_finger(nodeId, id)
 				//if (cpfSuccessor != self){
-					var future5 = cpfSuccessor ? Find_Predecessor(id)
-					var predecessor = Await.result(future5, timeout.duration).asInstanceOf[(ActorRef, Int)]
+					var future5 = cpfSuccessor ? Find_Predecessor(id, hopcount)
+					var predecessor = Await.result(future5, timeout.duration).asInstanceOf[(ActorRef, Int, Int)]
 					////println("FP2: At nodeId: "+nodeId+ "--returning nodeId: "+ predecessor._2)
-					return (predecessor._1, predecessor._2)
+					return (predecessor._1, predecessor._2, predecessor._3)
 				//}
 			} 
 
@@ -183,9 +184,10 @@ class Node(nodeId:Int, KEY_LENGTH:Int, MAX_KEY:Int) extends Actor{
 
 
 		def init_finger_table(randomNode:ActorRef){
+			var jcount =0
 			println("\nWhen initialized the new node's successor was: " +fingerTable(0).successorId)
-			var future11 = randomNode ? Find_Successor(fingerTable(0).getStart())
-			var succNode = Await.result(future11, timeout.duration).asInstanceOf[(ActorRef, Int)]
+			var future11 = randomNode ? Find_Successor(fingerTable(0).getStart(), jcount)
+			var succNode = Await.result(future11, timeout.duration).asInstanceOf[(ActorRef, Int, Int)]
 			fingerTable(0).successor= succNode._1
 			fingerTable(0).successorId = succNode._2
 			println("\nNew node's successor updated to: "+ fingerTable(0).successorId)
@@ -203,8 +205,8 @@ class Node(nodeId:Int, KEY_LENGTH:Int, MAX_KEY:Int) extends Actor{
 				}
 				else{
 					//println("ift5")
-					var future13 = randomNode ? Find_Successor(fingerTable(i+1).getStart())
-					var temp2 = Await.result(future13, timeout.duration).asInstanceOf[(ActorRef, Int)]
+					var future13 = randomNode ? Find_Successor(fingerTable(i+1).getStart(), jcount)
+					var temp2 = Await.result(future13, timeout.duration).asInstanceOf[(ActorRef, Int, Int)]
 					fingerTable(i+1).successor= temp2._1
 					fingerTable(i+1).successorId= temp2._2
 				}
@@ -214,8 +216,9 @@ class Node(nodeId:Int, KEY_LENGTH:Int, MAX_KEY:Int) extends Actor{
 
 		def update_others(acref:ActorRef, nodeId: Int){
 			println("\n\nUpdate the fingerTable of other nodes.")
+			var jc= 0
 			for (i<- 0 until KEY_LENGTH){
-				var (pred, predId) = find_predecessor(nodeId, (nodeId - Math.pow(2, (i))).toInt)
+				var (pred, predId, jcount) = find_predecessor(nodeId, (nodeId - Math.pow(2, (i))).toInt, jc)
 				
 				pred ! Update_Finger_Table(acref, nodeId, i)
 
@@ -228,7 +231,7 @@ class Node(nodeId:Int, KEY_LENGTH:Int, MAX_KEY:Int) extends Actor{
 				fingerTable(i).successorId = newNodeId		
 				var p = predecessorNode
 				//var x = p ? GetNodeID()
-				println("Updating finger " +i+ " of node with id: " +nodeId + " since a new node: " + newNodeId+ " joined the Chord network.")
+				println("Updated finger " +i+ " of node with id: " +nodeId + " since a new node: " + newNodeId+ " joined the Chord network.")
 				p ! Update_Finger_Table(actorref, newNodeId, i)
 			}
 			

@@ -1,0 +1,23 @@
+Punam Mahato: UFID- 68382764
+
+Largest Network: 15625 nodes
+
+What is working: Both Algorithms on all 4 topologies
+
+After unzipping the folder, cd to that directory from the terminal.
+>cd Project2
+>cd Gossip_PushSum
+>cd Gossip_PushSum
+
+>sbt
+
+>run numberOfNodes Topology algorithm
+
+numberOfNodes can be: 100, 1000 etc.
+
+Topology can be: Line, 3DGrid, Imperfect3DGrid, FullNetwork
+
+algorithm can be: gossip, pushsum
+
+Example: run 1000 3DGrid Pushsum
+

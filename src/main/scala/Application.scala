@@ -21,7 +21,7 @@ node join: n picks a random node from the nodesList and passes message join()
 case class Start()
 
 
-class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends Actor{
+class Application(acsys: ActorSystem, nrNodes: Int, numRequests: Int) extends Actor{
 	var	nodesList: ArrayBuffer[ActorRef] = new  ArrayBuffer[ActorRef]
 	var ID_Node_map = new TreeMap[Int, ActorRef]
 	var sortedKeyArray: ArrayBuffer[Int] = new ArrayBuffer[Int]
@@ -35,7 +35,7 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 
 	val host: String = InetAddress.getLocalHost().getHostAddress();
 	val port:Int = 3000;
-
+	var numNodes:Int =nrNodes
 
 	def receive ={
 		case Start() =>
@@ -49,16 +49,18 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 		                	Character.forDigit(b & 0x0f, 16))
 		                val trimmedHash= hash.substring(0,4)
 		                val nodeId = Integer.parseInt(trimmedHash, 16)
-			
-						val acref =  context.actorOf(Props(classOf[Node], nodeId, KEY_LENGTH, MAX_KEY))
+						if(ID_Node_map.contains(nodeId) == false ){
+							val acref =  context.actorOf(Props(classOf[Node], nodeId, KEY_LENGTH, MAX_KEY))
+							ID_Node_map += (nodeId -> acref)
+							nodesList += acref
+						}
+						else{
+							println("Duplicated nodeId")
+							numNodes = numNodes -1							
+						}
 						
-						nodesList += acref
-						//println("-----" + nodesList)
-						if (ID_Node_map.contains(nodeId) == true ) {
-								println("Duplicated nodeId")
-							}	
-						else {
-							ID_Node_map += (nodeId -> acref)}
+						
+
 							
 						}	
 			//println (nodesList)
@@ -71,6 +73,8 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 			}
 
 			println (sortedKeyArray)
+
+			Thread.sleep(3000)
 
 
 	/*public ChordNode getSortedNode(int i) {
@@ -138,14 +142,15 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 
 
 			print("\n\nEnter a key that you want to lookup from 0 to "+ MAX_KEY +": ")
+			var hopcount:Int = 0
 			val input = scanner.nextLine()
 			//println(input.toInt)
 			val r = (scala.util.Random).nextInt(nodesList.length)
-			val futr = nodesList(r) ? Find_Successor(input.toInt)
-			val result = Await.result(futr, timeout.duration).asInstanceOf[(ActorRef, Int)]
+			val futr = nodesList(r) ? Find_Successor(input.toInt, hopcount)
+			val result = Await.result(futr, timeout.duration).asInstanceOf[(ActorRef, Int, Int)]
 			
 			println("\n\nThe node responsible for the given key is: "+ result._1+ " whose nodeId is: "+result._2)
-			
+			println("Number of hops: "+ result._3)
 
 
 
@@ -154,6 +159,7 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 			println("---------------------------------------------------------")
 			val scanner2 = new java.util.Scanner(System.in)
 			print("\n\n\nEnter ip address of the newly joining node: ")
+
 
 			val input2 = scanner2.nextLine()
 			//println(input2.toInt)
@@ -181,41 +187,74 @@ class Application(acsys: ActorSystem, numNodes: Int, numRequests: Int) extends A
 						
 
 
+			Thread.sleep(5000)
+
+			println("\n\n")
+			println("---------------------------------------------------------")
+			println("\n\n------------------CHORD IN ACTION--------------------\n\n")
+
+			println("---------------------------------------------------------")
+			val scanner3 = new java.util.Scanner(System.in)
+			print("\n\n\nDo you want to see Chord in action? ")
 
 
-
-
-
-
-
-			//Concurrent Join
-
-						/*val r = (scala.util.Random).nextInt(nodesList.length)
-						println(nodesList.length)
-						println(r)
-						println(nodesList(i))
-						println(nodesList(r))
-						nodesList(i) ! ConcurrentJoin(nodesList(r))				
-						nodesList(i) ! Stabilize()
-						val future1 = nodesList(i) ? GetSuccessor()
-						val successorNode = Await.result(future1, timeout.duration).asInstanceOf[ActorRef]
-						successorNode ! Stabilize()
-						val future2 = nodesList(i) ? GetPredecessor()
-						val predecessorNode = Await.result(future2, timeout.duration).asInstanceOf[ActorRef]
-						if (predecessorNode != null){predecessorNode ! Stabilize()}
-						*/
-
-
-						/*ChordNode preceding = node.getSuccessor().getPredecessor();
-						node.stabilize();
-						if (preceding == null) {
-							node.getSuccessor().stabilize();
-						} else {
-							preceding.stabilize();
-						}*/
+			val input3 = scanner2.nextLine()			
+			if (input3.toString == "yes"){
+				println("Performing "+numRequests+ " lookups on each node: ")
+				var TotalHops =0
+				//var futureArray:ArrayBuffer[Future[Any]] = new ArrayBuffer[Future[Any]]
+				//var resultArray: ArrayBuffer[(ActorRef, Int, Int)] =new ArrayBuffer[(ActorRef, Int, Int)]
+				for (i <- 0 until numRequests){
+					for (j<-0 until nodesList.length){
+	
+						var hopcount:Int = 0
+						var key = (scala.util.Random).nextInt(MAX_KEY)
+						println(key)
+						println(nodesList(j))
+						var future10 = nodesList(j) ? Find_Successor(key, hopcount)
+						var result= Await.result(future10, timeout.duration).asInstanceOf[(ActorRef, Int, Int)]
 					
+						println("\n\nThe node responsible for key "+ key +" is: "+ result._1+ " whose nodeId is: "+result._2)
+						println("Number of hops: "+ result._3)
+						TotalHops += result._3
+
+						future10 = null
+						result= null
+					}
+				}
+
+			println("\n\nPerformed a lookup of "+ (numRequests*numNodes) +" keys.")
+			println("Average number of hops per request was: "+ (TotalHops/(numRequests*numNodes)).toInt)
+			}
+
 			
+
+
+			//Failure Model
+			for (i<-0 until numNodes/2){
+
+			}
+
+
+
+
+			context.system.shutdown()
 			
+
+
+					
+			//Concurrent Join
+			/*val r = (scala.util.Random).nextInt(nodesList.length)			
+			nodesList(i) ! ConcurrentJoin(nodesList(r))				
+			nodesList(i) ! Stabilize()
+			val future1 = nodesList(i) ? GetSuccessor()
+			val successorNode = Await.result(future1, timeout.duration).asInstanceOf[ActorRef]
+			successorNode ! Stabilize()
+			val future2 = nodesList(i) ? GetPredecessor()
+			val predecessorNode = Await.result(future2, timeout.duration).asInstanceOf[ActorRef]
+			if (predecessorNode != null){predecessorNode ! Stabilize()}
+			*/
+
 
 			//fix_fingers()
 			/*for (i<-0 until numNodes) {
