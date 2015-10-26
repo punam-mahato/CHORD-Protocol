@@ -38,10 +38,10 @@ case class GetPredecessor()
 case class SetPredecessor(pred:ActorRef, predId:Int)
 case class SetFinger(i: Int, value:ActorRef, key: Int )
 
-case class ConcurrentJoin(randomNode: ActorRef)
-case class Stabilize()
-case class Notify(randomNode: ActorRef)
-case class Fix_Fingers()
+//case class ConcurrentJoin(randomNode: ActorRef)
+//case class Stabilize()
+//case class Notify(randomNode: ActorRef)
+//case class Fix_Fingers()
 case class Find_Successor(id: Int, hopcount:Int)
 case class Find_Predecessor(id: Int, hopcount:Int)
 case class Closest_Preceding_Finger(id: Int)
@@ -240,7 +240,7 @@ class Node(nodeId:Int, KEY_LENGTH:Int, MAX_KEY:Int) extends Actor{
 
 		/*
 		def stabilize(){
-			var future17 = successorNode ? GetPredecessor
+			var future17 = successorNode ? GetPredecessor()
 			var temp = Await.result(future17, timeout.duration).asInstanceOf[ActorRef]
 			var future14 = temp ? GetNodeID
 			var tempId = Await.result(future14, timeout.duration).asInstanceOf[Int]

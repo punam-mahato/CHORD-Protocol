@@ -15,9 +15,7 @@ import scala.collection.immutable.TreeMap
 import util.control.Breaks._
 
 
-/* 
-node join: n picks a random node from the nodesList and passes message join()
-*/
+
 case class Start()
 
 
@@ -77,12 +75,6 @@ class Application(acsys: ActorSystem, nrNodes: Int, numRequests: Int) extends Ac
 			Thread.sleep(3000)
 
 
-	/*public ChordNode getSortedNode(int i) {
-		if (sortedKeyArray == null) {
-			sortedKeyArray = sortedNodeMap.keySet().toArray();
-		}
-		return (ChordNode) sortedNodeMap.get(sortedKeyArray[i]);
-	}*/
 			
 
 
@@ -187,7 +179,7 @@ class Application(acsys: ActorSystem, nrNodes: Int, numRequests: Int) extends Ac
 						
 
 
-			Thread.sleep(5000)
+			Thread.sleep(2000)
 
 			println("\n\n")
 			println("---------------------------------------------------------")
@@ -209,12 +201,12 @@ class Application(acsys: ActorSystem, nrNodes: Int, numRequests: Int) extends Ac
 	
 						var hopcount:Int = 0
 						var key = (scala.util.Random).nextInt(MAX_KEY)
-						println(key)
+						println("\n\nThe key to lookup is: "+key)
 						println(nodesList(j))
 						var future10 = nodesList(j) ? Find_Successor(key, hopcount)
 						var result= Await.result(future10, timeout.duration).asInstanceOf[(ActorRef, Int, Int)]
 					
-						println("\n\nThe node responsible for key "+ key +" is: "+ result._1+ " whose nodeId is: "+result._2)
+						println("The node responsible for key "+ key +" is: "+ result._1+ " whose nodeId is: "+result._2)
 						println("Number of hops: "+ result._3)
 						TotalHops += result._3
 
@@ -229,14 +221,34 @@ class Application(acsys: ActorSystem, nrNodes: Int, numRequests: Int) extends Ac
 
 			
 
+			Thread.sleep(2000)
 
+/*
 			//Failure Model
+			println("\n\n--------Failure model------------- ")
 			for (i<-0 until numNodes/2){
-
+				val z = (scala.util.Random).nextInt(nodesList.length)
+				context.stop(nodesList(z))
+				nodesList -= nodesList(z)
+				numNodes = numNodes - 1
 			}
+			println("nodesList length= " + nodesList.length)
+			val scanner4 = new java.util.Scanner(System.in)
 
 
+			print("\n\nEnter a key that you want to lookup from 0 to "+ MAX_KEY +": ")
+			var hpcount = 0
+			val input4 = scanner4.nextLine()
+			//println(input.toInt)
+			val m = (scala.util.Random).nextInt(nodesList.length)
+			println("At node: "+ nodesList(m) + " search for key: " + input4)
+			val futr1 = nodesList(m) ? Find_Successor(input4.toInt, hpcount)
+			val result1 = Await.result(futr1, timeout.duration).asInstanceOf[(ActorRef, Int, Int)]
+			
+			println("\n\nThe node responsible for the given key is: "+ result1._1+ " whose nodeId is: "+result1._2)
+			println("Number of hops: "+ result1._3)
 
+*/
 
 			context.system.shutdown()
 			
