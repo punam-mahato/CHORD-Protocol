@@ -6,12 +6,12 @@ Node.scala implements the chord actors.
 
 
 
-Functions of the protocol as described in the paper "Chord: A Scalable Peer-to-peer Lookup Protocol
-for Internet Applications" had to be modified in order to suit the actor model of programming
-but they more or less are at par with the pseudocode given.
+Functions of the protocol as described in the paper "Chord: A Scalable Peer-to-peer Lookup Protocol for Internet Applications" had to be modified in order to suit the actor model of programming but they are at par with the pseudocode given.
 I used ask(?) feature of Akka messaging in order to query a node and get a reply back as a future.
 
 Features: Key Lookup, New Node Join, Simultaneous requests at different nodes to calculate average no. of hops for lookup for a given network dimension(no. of Nodes).
+
+
 
 To run the program:
 
