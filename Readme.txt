@@ -17,7 +17,7 @@ To run the program:
 
 cd to the directory from the terminal.
 
->cd Chord
+>cd CHORD-Protocol
 
 >sbt
 
